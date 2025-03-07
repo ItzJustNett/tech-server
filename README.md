@@ -18,7 +18,7 @@
  - uniquie features
  - API
 
-#Availible commands
+# Availible commands
 ```
 # Show help information
 python client.py help
