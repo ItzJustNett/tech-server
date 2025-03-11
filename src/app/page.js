@@ -290,10 +290,10 @@ export default function Home() {
         }
         
         #scroll-arrow {
-          font-size: 2rem;
+          font-size: 1.5rem;
           animation: bounce 2s infinite;
-          color: #8a2be2;
-          text-shadow: 0 0 10px rgba(138, 43, 226, 0.7);
+          color: rgba(138, 43, 226, 0.7);
+          text-shadow: 0 0 5px rgba(138, 43, 226, 0.3);
         }
         
         @keyframes bounce {
@@ -317,18 +317,11 @@ export default function Home() {
           background-color: #000;
           padding: 2rem;
           position: relative;
+          border-top: 1px solid rgba(138, 43, 226, 0.2);
         }
         
         #einstein-section::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, #8a2be2, #3399ff, #8a2be2, transparent);
-          box-shadow: 0 0 15px #8a2be2, 0 0 25px #3399ff;
-          z-index: 5;
+          display: none;
         }
         
         #einstein-container {
