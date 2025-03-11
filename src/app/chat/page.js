@@ -2,16 +2,20 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+// Set your server IP and port here
+const SERVER_IP = "139.28.37.39"; // Replace with your actual server IP
+const SERVER_PORT = 5000;
+const SERVER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
+
 export default function ChatPage() {
   // State for chat functionality
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [username, setUsername] = useState('');
-  const [serverUrl, setServerUrl] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [typingUsers, setTypingUsers] = useState('');
   const [users, setUsers] = useState([]);
-  const [step, setStep] = useState('config'); // config -> username -> chat
+  const [step, setStep] = useState('username'); // Skip server URL input, just ask for username
   
   // Refs
   const chatClientRef = useRef(null);
@@ -208,14 +212,6 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
-  // Handle server URL submit
-  const handleServerSubmit = (e) => {
-    e.preventDefault();
-    if (!serverUrl) return;
-    
-    setStep('username');
-  };
-  
   // Handle username submit
   const handleUsernameSubmit = async (e) => {
     e.preventDefault();
@@ -229,7 +225,7 @@ export default function ChatPage() {
         return;
       }
       
-      chatClientRef.current = new ChatClient(serverUrl);
+      chatClientRef.current = new ChatClient(SERVER_URL);
       
       // Set up event handlers
       chatClientRef.current.onConnect = () => {
@@ -273,7 +269,7 @@ export default function ChatPage() {
       // Connect to server
       const connected = await chatClientRef.current.connect(username);
       if (!connected) {
-        alert('Failed to connect to chat server. Please check the server URL and try again.');
+        alert(`Failed to connect to chat server at ${SERVER_URL}. Please try again later.`);
       }
     } catch (error) {
       console.error('Error connecting to chat server:', error);
@@ -326,27 +322,6 @@ export default function ChatPage() {
       <main className="chat-main">
         <h1 className="chat-title">Chat App</h1>
         
-        {step === 'config' && (
-          <div className="form-container">
-            <h2>Connect to Chat Server</h2>
-            <form onSubmit={handleServerSubmit} className="form">
-              <div className="form-group">
-                <label htmlFor="server-url">Server URL:</label>
-                <input
-                  type="text"
-                  id="server-url"
-                  placeholder="http://your-server-ip:5000"
-                  value={serverUrl}
-                  onChange={(e) => setServerUrl(e.target.value)}
-                  required
-                  className="input"
-                />
-              </div>
-              <button type="submit" className="button">Continue</button>
-            </form>
-          </div>
-        )}
-        
         {step === 'username' && (
           <div className="form-container">
             <h2>Enter Your Username</h2>
@@ -362,6 +337,9 @@ export default function ChatPage() {
                   required
                   className="input"
                 />
+              </div>
+              <div className="server-info">
+                Connecting to: {SERVER_URL}
               </div>
               <button type="submit" className="button">Join Chat</button>
             </form>
@@ -420,7 +398,7 @@ export default function ChatPage() {
       </main>
       
       <style jsx>{`
-        /* CSS styles for the chat page */
+        /* CSS styles for the chat page - DARK MODE */
         .chat-page {
           min-height: 100vh;
           padding: 0 1rem;
@@ -428,7 +406,8 @@ export default function ChatPage() {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          background-color: #f5f5f5;
+          background-color: #121212;
+          color: #e0e0e0;
         }
         
         .chat-main {
@@ -447,22 +426,32 @@ export default function ChatPage() {
           line-height: 1.15;
           font-size: 2.5rem;
           text-align: center;
-          color: #4a69bd;
+          color: #7288d9;
         }
         
         .form-container {
-          background-color: white;
+          background-color: #1e1e1e;
           padding: 2rem;
           border-radius: 10px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
           width: 100%;
           max-width: 500px;
         }
         
         .form-container h2 {
           margin-top: 0;
-          color: #4a69bd;
+          color: #7288d9;
           margin-bottom: 1.5rem;
+        }
+        
+        .server-info {
+          margin-top: 1rem;
+          font-size: 0.9rem;
+          color: #a0a0a0;
+          text-align: center;
+          padding: 0.5rem;
+          background-color: #2a2a2a;
+          border-radius: 5px;
         }
         
         .form {
@@ -479,19 +468,26 @@ export default function ChatPage() {
         
         .form-group label {
           font-weight: 600;
-          color: #333;
+          color: #c0c0c0;
         }
         
         .input {
           padding: 0.8rem 1rem;
-          border: 1px solid #ddd;
+          border: 1px solid #444;
           border-radius: 5px;
           font-size: 1rem;
+          background-color: #2a2a2a;
+          color: #e0e0e0;
+        }
+        
+        .input:focus {
+          border-color: #7288d9;
+          outline: none;
         }
         
         .button {
           padding: 0.8rem 1.5rem;
-          background-color: #4a69bd;
+          background-color: #7288d9;
           color: white;
           border: none;
           border-radius: 5px;
@@ -502,13 +498,13 @@ export default function ChatPage() {
         }
         
         .button:hover {
-          background-color: #3a5096;
+          background-color: #5a6fb3;
         }
         
         .chat-container {
-          background-color: white;
+          background-color: #1e1e1e;
           border-radius: 10px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
           width: 100%;
           height: 80vh;
           display: flex;
@@ -518,16 +514,17 @@ export default function ChatPage() {
         
         .chat-header {
           padding: 1rem;
-          background-color: #4a69bd;
+          background-color: #292929;
           color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
+          border-bottom: 1px solid #444;
         }
         
         .status-connected {
-          background-color: #4ade80;
-          color: #155724;
+          background-color: #10b981;
+          color: #d1fae5;
           padding: 0.3rem 0.8rem;
           border-radius: 50px;
           font-size: 0.8rem;
@@ -536,7 +533,7 @@ export default function ChatPage() {
         
         .status-disconnected {
           background-color: #ef4444;
-          color: #721c24;
+          color: #fee2e2;
           padding: 0.3rem 0.8rem;
           border-radius: 50px;
           font-size: 0.8rem;
@@ -545,7 +542,7 @@ export default function ChatPage() {
         
         .user-count {
           font-size: 0.9rem;
-          opacity: 0.9;
+          opacity: 0.8;
         }
         
         .message-container {
@@ -555,6 +552,20 @@ export default function ChatPage() {
           display: flex;
           flex-direction: column;
           gap: 0.8rem;
+          background-color: #1e1e1e;
+        }
+        
+        .message-container::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .message-container::-webkit-scrollbar-track {
+          background: #292929;
+        }
+        
+        .message-container::-webkit-scrollbar-thumb {
+          background-color: #444;
+          border-radius: 10px;
         }
         
         .message {
@@ -566,8 +577,8 @@ export default function ChatPage() {
         
         .system-message {
           align-self: center;
-          background-color: #e2e8f0;
-          color: #475569;
+          background-color: #2a2a2a;
+          color: #a0a0a0;
           font-style: italic;
           font-size: 0.9rem;
           padding: 0.5rem 1rem;
@@ -575,20 +586,21 @@ export default function ChatPage() {
         
         .sent-message {
           align-self: flex-end;
-          background-color: #4a69bd;
+          background-color: #7288d9;
           color: white;
         }
         
         .received-message {
           align-self: flex-start;
-          background-color: #e2e8f0;
-          color: #1e293b;
+          background-color: #383838;
+          color: #e0e0e0;
         }
         
         .message-username {
           font-weight: 600;
           font-size: 0.9rem;
           margin-bottom: 0.3rem;
+          color: #a0a0a0;
         }
         
         .message-text {
@@ -605,29 +617,37 @@ export default function ChatPage() {
         .typing-indicator {
           padding: 0.5rem 1rem;
           font-style: italic;
-          color: #64748b;
+          color: #a0a0a0;
           font-size: 0.9rem;
           height: 1.8rem;
+          background-color: #232323;
         }
         
         .input-form {
           display: flex;
           padding: 1rem;
-          border-top: 1px solid #e2e8f0;
+          background-color: #292929;
           gap: 0.5rem;
         }
         
         .message-input {
           flex: 1;
           padding: 0.8rem 1rem;
-          border: 1px solid #ddd;
+          border: 1px solid #444;
           border-radius: 5px;
           font-size: 1rem;
+          background-color: #2a2a2a;
+          color: #e0e0e0;
+        }
+        
+        .message-input:focus {
+          border-color: #7288d9;
+          outline: none;
         }
         
         .send-button {
           padding: 0.8rem 1.5rem;
-          background-color: #4a69bd;
+          background-color: #7288d9;
           color: white;
           border: none;
           border-radius: 5px;
@@ -636,7 +656,7 @@ export default function ChatPage() {
         }
         
         .send-button:hover {
-          background-color: #3a5096;
+          background-color: #5a6fb3;
         }
         
         @media (max-width: 600px) {
