@@ -29,24 +29,41 @@ export default function Home() {
     
     // Create shooting stars
     const shootingStars = [];
+    const trailTimeout = 3000; // 3 seconds before trails disappear
+    
     const createShootingStar = () => {
       const x = Math.random() * canvas.width;
       const y = Math.random() * (canvas.height/3);
-      shootingStars.push({
+      const newStar = {
         x,
         y,
         length: Math.random() * 80 + 50,
         speed: Math.random() * 10 + 10,
         angle: Math.random() * Math.PI / 4 + Math.PI / 4,
         life: 1,
-        decay: Math.random() * 0.02 + 0.01
-      });
+        decay: Math.random() * 0.02 + 0.01,
+        trail: [],
+        shouldDrawTrail: true
+      };
+      
+      shootingStars.push(newStar);
+      
+      // Set timeout to remove the trail after a few seconds
+      setTimeout(() => {
+        if (shootingStars.includes(newStar)) {
+          newStar.shouldDrawTrail = false;
+        }
+      }, trailTimeout);
     };
     
     // Animation
     const animate = () => {
-      // Clear canvas
-      ctx.fillStyle = 'rgba(10, 10, 30, 0.1)';
+      // Clear canvas with gradient background
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.1)');
+      gradient.addColorStop(0.3, 'rgba(10, 10, 46, 0.1)');
+      gradient.addColorStop(1, 'rgba(26, 26, 74, 0.1)');
+      ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
       // Draw stars
@@ -73,18 +90,31 @@ export default function Home() {
       
       // Draw shooting stars
       shootingStars.forEach((star, index) => {
+        // Draw star head
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${star.life})`;
-        ctx.lineWidth = 2;
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.life})`;
+        ctx.arc(star.x, star.y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
         
-        // Calculate position
-        const x2 = star.x + Math.cos(star.angle) * star.length;
-        const y2 = star.y + Math.sin(star.angle) * star.length;
+        // Draw star trail if enabled
+        if (star.shouldDrawTrail) {
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(255, 255, 255, ${star.life})`;
+          ctx.lineWidth = 2;
+          
+          // Calculate trail end position
+          const x2 = star.x + Math.cos(star.angle + Math.PI) * star.length;
+          const y2 = star.y + Math.sin(star.angle + Math.PI) * star.length;
+          
+          // Draw trail
+          ctx.moveTo(star.x, star.y);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
         
-        // Draw line
-        ctx.moveTo(star.x, star.y);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
+        // Store current position for trail
+        star.trail.push({x: star.x, y: star.y});
+        if (star.trail.length > 10) star.trail.shift();
         
         // Move shooting star
         star.x += Math.cos(star.angle) * star.speed;
@@ -132,6 +162,20 @@ export default function Home() {
       <div id="content">
         <h1 id="title">Neon Mind</h1>
         <p id="quote">The future is now.</p>
+        <div id="einstein-container">
+          <p id="einstein-quote">
+            <span className="quote-marks">"</span>Once you stop learning, you start dying.<span className="quote-marks">"</span>
+            <br />
+            <span id="quote-author">– Albert Einstein</span>
+          </p>
+          <div id="einstein-image-container">
+            <img 
+              src="https://hips.hearstapps.com/hmg-prod/images/albert-einstein-sticks-out-his-tongue-when-asked-by-news-photo-1681316749.jpg" 
+              alt="Albert Einstein sticking out his tongue" 
+              id="einstein-image"
+            />
+          </div>
+        </div>
       </div>
       
       <style jsx global>{`
@@ -151,7 +195,7 @@ export default function Home() {
           width: 100vw;
           height: 100vh;
           overflow: hidden;
-          background: linear-gradient(to bottom, #0a0a2e, #1a1a4a);
+          background: linear-gradient(to bottom, #000000, #0a0a2e, #1a1a4a);
         }
         
         #nightSkyCanvas {
@@ -210,6 +254,66 @@ export default function Home() {
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+        
+        #einstein-container {
+          margin-top: 3rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          opacity: 0;
+          animation: fadeIn 2s forwards 2s;
+        }
+        
+        #einstein-quote {
+          font-size: 1.5rem;
+          color: #ffffff;
+          text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+          margin-bottom: 1.5rem;
+          text-align: center;
+          line-height: 1.6;
+        }
+        
+        .quote-marks {
+          color: #8a2be2;
+          text-shadow: 0 0 5px rgba(138, 43, 226, 0.5);
+          font-size: 1.8rem;
+          font-weight: bold;
+        }
+        
+        #quote-author {
+          font-size: 1.2rem;
+          font-style: italic;
+          opacity: 0.9;
+        }
+        
+        #einstein-image-container {
+          width: 180px;
+          height: 180px;
+          border-radius: 50%;
+          overflow: hidden;
+          border: 3px solid #8a2be2;
+          box-shadow: 0 0 15px rgba(138, 43, 226, 0.7), 
+                      0 0 30px rgba(51, 153, 255, 0.5);
+          animation: glowPulse 3s infinite alternate;
+        }
+        
+        #einstein-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transform: scale(1.1);
+        }
+        
+        @keyframes glowPulse {
+          from {
+            box-shadow: 0 0 15px rgba(138, 43, 226, 0.7), 
+                        0 0 30px rgba(51, 153, 255, 0.5);
+          }
+          to {
+            box-shadow: 0 0 20px rgba(138, 43, 226, 0.9), 
+                        0 0 40px rgba(51, 153, 255, 0.7);
           }
         }
       `}
