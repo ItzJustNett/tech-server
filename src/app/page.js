@@ -172,7 +172,6 @@ export default function Home() {
           <h1 id="title">Neon Mind</h1>
           <p id="quote">The future is now.</p>
           <div id="scroll-indicator">
-            <p>Scroll Down</p>
             <div id="scroll-arrow">↓</div>
           </div>
         </div>
@@ -317,6 +316,19 @@ export default function Home() {
           align-items: center;
           background-color: #000;
           padding: 2rem;
+          position: relative;
+        }
+        
+        #einstein-section::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, #8a2be2, #3399ff, #8a2be2, transparent);
+          box-shadow: 0 0 15px #8a2be2, 0 0 25px #3399ff;
+          z-index: 5;
         }
         
         #einstein-container {
