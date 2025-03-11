@@ -175,10 +175,10 @@ export default function Home() {
           font-size: 5rem;
           font-weight: bold;
           margin-bottom: 1rem;
-          color: #ff00cc;
-          text-shadow: 0 0 10px #ff00cc,
+          color: #8a2be2;
+          text-shadow: 0 0 10px #8a2be2,
                       0 0 20px #3399ff,
-                      0 0 30px #ff00cc;
+                      0 0 30px #8a2be2;
           animation: neonPulse 2s infinite alternate;
         }
         
@@ -192,13 +192,13 @@ export default function Home() {
         
         @keyframes neonPulse {
           from {
-            text-shadow: 0 0 10px rgba(255, 0, 204, 0.5),
+            text-shadow: 0 0 10px rgba(138, 43, 226, 0.5),
                         0 0 20px rgba(51, 153, 255, 0.5);
           }
           to {
-            text-shadow: 0 0 15px rgba(255, 0, 204, 0.8),
+            text-shadow: 0 0 15px rgba(138, 43, 226, 0.8),
                         0 0 25px rgba(51, 153, 255, 0.8),
-                        0 0 35px rgba(255, 0, 204, 0.5);
+                        0 0 35px rgba(138, 43, 226, 0.5);
           }
         }
         
