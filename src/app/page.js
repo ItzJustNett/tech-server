@@ -1,101 +1,219 @@
-import Image from "next/image";
+// page.js
+
+"use client";
+
+import { useEffect, useRef } from 'react';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const canvasRef = useRef(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const stars = [];
+    
+    // Set canvas to full screen
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Create stars
+    for (let i = 0; i < 200; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 1.5,
+        opacity: Math.random(),
+        speed: Math.random() * 0.05
+      });
+    }
+    
+    // Create shooting stars
+    const shootingStars = [];
+    const createShootingStar = () => {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * (canvas.height/3);
+      shootingStars.push({
+        x,
+        y,
+        length: Math.random() * 80 + 50,
+        speed: Math.random() * 10 + 10,
+        angle: Math.random() * Math.PI / 4 + Math.PI / 4,
+        life: 1,
+        decay: Math.random() * 0.02 + 0.01
+      });
+    };
+    
+    // Animation
+    const animate = () => {
+      // Clear canvas
+      ctx.fillStyle = 'rgba(10, 10, 30, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw stars
+      stars.forEach(star => {
+        ctx.beginPath();
+        
+        // Create twinkling effect
+        star.opacity += Math.random() * 0.01 - 0.005;
+        star.opacity = Math.max(0, Math.min(1, star.opacity));
+        
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Slight movement
+        star.y += star.speed;
+        
+        // Reset if off screen
+        if (star.y > canvas.height) {
+          star.y = 0;
+          star.x = Math.random() * canvas.width;
+        }
+      });
+      
+      // Draw shooting stars
+      shootingStars.forEach((star, index) => {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255, 255, 255, ${star.life})`;
+        ctx.lineWidth = 2;
+        
+        // Calculate position
+        const x2 = star.x + Math.cos(star.angle) * star.length;
+        const y2 = star.y + Math.sin(star.angle) * star.length;
+        
+        // Draw line
+        ctx.moveTo(star.x, star.y);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        
+        // Move shooting star
+        star.x += Math.cos(star.angle) * star.speed;
+        star.y += Math.sin(star.angle) * star.speed;
+        
+        // Fade out
+        star.life -= star.decay;
+        
+        // Remove if invisible
+        if (star.life <= 0 || star.x > canvas.width || star.y > canvas.height) {
+          shootingStars.splice(index, 1);
+        }
+      });
+      
+      // Random chance to create new shooting star
+      if (Math.random() < 0.01 && shootingStars.length < 3) {
+        createShootingStar();
+      }
+      
+      requestAnimationFrame(animate);
+    };
+    
+    animate();
+    
+    // Resize handler
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  return (
+    <div id="nightSkyContainer">
+      <canvas 
+        ref={canvasRef} 
+        id="nightSkyCanvas"
+      />
+      
+      <div id="content">
+        <h1 id="title">Neon Mind</h1>
+        <p id="quote">The future is now.</p>
+      </div>
+      
+      <style jsx global>{`
+        * {
+          box-sizing: border-box;
+          margin: 0;
+          padding: 0;
+        }
+        
+        body {
+          font-family: sans-serif;
+          overflow: hidden;
+        }
+
+        #nightSkyContainer {
+          position: relative;
+          width: 100vw;
+          height: 100vh;
+          overflow: hidden;
+          background: linear-gradient(to bottom, #0a0a2e, #1a1a4a);
+        }
+        
+        #nightSkyCanvas {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+        }
+        
+        #content {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          text-align: center;
+          z-index: 10;
+        }
+        
+        #title {
+          font-size: 5rem;
+          font-weight: bold;
+          margin-bottom: 1rem;
+          color: #ff00cc;
+          text-shadow: 0 0 10px #ff00cc,
+                      0 0 20px #3399ff,
+                      0 0 30px #ff00cc;
+          animation: neonPulse 2s infinite alternate;
+        }
+        
+        #quote {
+          font-size: 1.5rem;
+          color: #ffffff;
+          text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+          opacity: 0;
+          animation: fadeIn 2s forwards 1s;
+        }
+        
+        @keyframes neonPulse {
+          from {
+            text-shadow: 0 0 10px rgba(255, 0, 204, 0.5),
+                        0 0 20px rgba(51, 153, 255, 0.5);
+          }
+          to {
+            text-shadow: 0 0 15px rgba(255, 0, 204, 0.8),
+                        0 0 25px rgba(51, 153, 255, 0.8),
+                        0 0 35px rgba(255, 0, 204, 0.5);
+          }
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}
+      </style>
     </div>
   );
 }
