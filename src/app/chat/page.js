@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-// Set your server IP and port here
+// Set your server IP here (without protocol)
 const SERVER_IP = "139.28.37.39"; // Replace with your actual server IP
 const SERVER_PORT = 5000;
-const SERVER_URL = `http://${SERVER_IP}:${SERVER_PORT}`;
 
 export default function ChatPage() {
+  // Use WebSocket protocol to avoid mixed content issues
+  // (ws:// for HTTP pages, wss:// for HTTPS pages)
+  const [serverUrl, setServerUrl] = useState("");
+  
   // State for chat functionality
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -15,12 +18,22 @@ export default function ChatPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [typingUsers, setTypingUsers] = useState('');
   const [users, setUsers] = useState([]);
-  const [step, setStep] = useState('username'); // Skip server URL input, just ask for username
+  const [step, setStep] = useState('username');
+  const [connectionError, setConnectionError] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
   
   // Refs
   const chatClientRef = useRef(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  
+  // Determine the correct protocol based on the current page protocol
+  useEffect(() => {
+    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    // Use the detected protocol for Socket.IO (http/https)
+    const socketProtocol = isHttps ? 'https' : 'http';
+    setServerUrl(`${socketProtocol}://${SERVER_IP}:${SERVER_PORT}`);
+  }, []);
   
   // Load ChatClient script on component mount
   useEffect(() => {
@@ -41,6 +54,7 @@ export default function ChatPage() {
           this.onMessage = null;
           this.onUserTyping = null;
           this.onUserList = null;
+          this.onError = null;
         }
         
         // Load Socket.IO client library dynamically
@@ -57,7 +71,7 @@ export default function ChatPage() {
             script.async = true;
             
             script.onload = () => resolve(window.io);
-            script.onerror = () => reject(new Error('Failed to load Socket.IO client'));
+            script.onerror = (e) => reject(new Error('Failed to load Socket.IO client'));
             
             document.head.appendChild(script);
           });
@@ -66,11 +80,18 @@ export default function ChatPage() {
         // Connect to the chat server
         async connect(username) {
           try {
+            console.log("Connecting to chat server...");
+            
             // Load Socket.IO if not already loaded
             await this.loadSocketIO();
             
-            // Connect to the Socket.IO server
-            this.socket = io(this.serverUrl);
+            // Connect to the Socket.IO server with error handling
+            this.socket = io(this.serverUrl, {
+              reconnectionAttempts: 3,
+              timeout: 10000,
+              transports: ['websocket', 'polling']
+            });
+            
             this.username = username || 'Anonymous';
             
             // Set up event listeners
@@ -84,6 +105,13 @@ export default function ChatPage() {
               // Call onConnect callback if provided
               if (typeof this.onConnect === 'function') {
                 this.onConnect();
+              }
+            });
+            
+            this.socket.on('connect_error', (err) => {
+              console.error('Connection error:', err);
+              if (typeof this.onError === 'function') {
+                this.onError('Connection error. Please try again later.');
               }
             });
             
@@ -127,9 +155,28 @@ export default function ChatPage() {
               }
             });
             
-            return true;
+            return new Promise((resolve) => {
+              // Set a timeout for connection
+              const timeout = setTimeout(() => {
+                if (!this.isConnected) {
+                  if (typeof this.onError === 'function') {
+                    this.onError('Connection timeout. Server might be unavailable.');
+                  }
+                  resolve(false);
+                }
+              }, 5000);
+              
+              // When connected, clear timeout and resolve
+              this.socket.once('connect', () => {
+                clearTimeout(timeout);
+                resolve(true);
+              });
+            });
           } catch (error) {
             console.error('Failed to connect to chat server:', error);
+            if (typeof this.onError === 'function') {
+              this.onError('Failed to connect. Please try again later.');
+            }
             return false;
           }
         }
@@ -168,28 +215,6 @@ export default function ChatPage() {
             username: this.username
           };
         }
-        
-        // Fetch message history via REST API
-        async fetchMessages() {
-          try {
-            const response = await fetch(\`\${this.serverUrl}/api/messages\`);
-            return await response.json();
-          } catch (error) {
-            console.error('Failed to fetch messages:', error);
-            return [];
-          }
-        }
-        
-        // Fetch user list via REST API
-        async fetchUsers() {
-          try {
-            const response = await fetch(\`\${this.serverUrl}/api/users\`);
-            return await response.json();
-          } catch (error) {
-            console.error('Failed to fetch users:', error);
-            return [];
-          }
-        }
       }
       
       // Make available globally
@@ -200,7 +225,9 @@ export default function ChatPage() {
     
     // Cleanup on unmount
     return () => {
-      document.head.removeChild(script);
+      if (script.parentNode) {
+        document.head.removeChild(script);
+      }
       if (chatClientRef.current && chatClientRef.current.isConnected) {
         chatClientRef.current.disconnect();
       }
@@ -217,19 +244,24 @@ export default function ChatPage() {
     e.preventDefault();
     if (!username) return;
     
+    setConnectionError('');
+    setIsConnecting(true);
+    
     try {
       // Initialize chat client
       const ChatClient = window.ChatClient;
       if (!ChatClient) {
-        alert('Chat client not loaded. Please try refreshing the page.');
+        setConnectionError('Unable to initialize chat. Please try refreshing the page.');
+        setIsConnecting(false);
         return;
       }
       
-      chatClientRef.current = new ChatClient(SERVER_URL);
+      chatClientRef.current = new ChatClient(serverUrl);
       
       // Set up event handlers
       chatClientRef.current.onConnect = () => {
         setIsConnected(true);
+        setIsConnecting(false);
         setStep('chat');
       };
       
@@ -240,7 +272,7 @@ export default function ChatPage() {
           {
             id: Date.now(),
             type: 'system',
-            text: 'Disconnected from server',
+            text: 'Disconnected from chat server',
             timestamp: new Date().toISOString()
           }
         ]);
@@ -266,14 +298,21 @@ export default function ChatPage() {
         setUsers(userList);
       };
       
+      chatClientRef.current.onError = (errorMsg) => {
+        setConnectionError(errorMsg);
+        setIsConnecting(false);
+      };
+      
       // Connect to server
       const connected = await chatClientRef.current.connect(username);
-      if (!connected) {
-        alert(`Failed to connect to chat server at ${SERVER_URL}. Please try again later.`);
+      if (!connected && !connectionError) {
+        setConnectionError('Unable to connect to the chat server. Please try again later.');
+        setIsConnecting(false);
       }
     } catch (error) {
       console.error('Error connecting to chat server:', error);
-      alert(`Error connecting to chat server: ${error.message}`);
+      setConnectionError('Connection error. Please try again later.');
+      setIsConnecting(false);
     }
   };
   
@@ -317,6 +356,12 @@ export default function ChatPage() {
     }, 2000);
   };
   
+  // Retry connection
+  const handleRetry = () => {
+    setConnectionError('');
+    handleUsernameSubmit({ preventDefault: () => {} });
+  };
+  
   return (
     <div className="chat-page">
       <main className="chat-main">
@@ -324,7 +369,7 @@ export default function ChatPage() {
         
         {step === 'username' && (
           <div className="form-container">
-            <h2>Enter Your Username</h2>
+            <h2>Join Chat</h2>
             <form onSubmit={handleUsernameSubmit} className="form">
               <div className="form-group">
                 <label htmlFor="username">Username:</label>
@@ -336,12 +381,26 @@ export default function ChatPage() {
                   onChange={(e) => setUsername(e.target.value)}
                   required
                   className="input"
+                  disabled={isConnecting}
                 />
               </div>
-              <div className="server-info">
-                Connecting to: {SERVER_URL}
-              </div>
-              <button type="submit" className="button">Join Chat</button>
+              
+              {connectionError && (
+                <div className="error-message">
+                  {connectionError}
+                  <button type="button" onClick={handleRetry} className="retry-button">
+                    Retry Connection
+                  </button>
+                </div>
+              )}
+              
+              <button 
+                type="submit" 
+                className="button" 
+                disabled={!serverUrl || isConnecting}
+              >
+                {isConnecting ? 'Connecting...' : 'Join Chat'}
+              </button>
             </form>
           </div>
         )}
@@ -390,8 +449,15 @@ export default function ChatPage() {
                 onChange={handleTyping}
                 placeholder="Type a message..."
                 className="message-input"
+                disabled={!isConnected}
               />
-              <button type="submit" className="send-button">Send</button>
+              <button 
+                type="submit" 
+                className="send-button"
+                disabled={!isConnected}
+              >
+                Send
+              </button>
             </form>
           </div>
         )}
@@ -444,14 +510,33 @@ export default function ChatPage() {
           margin-bottom: 1.5rem;
         }
         
-        .server-info {
+        .error-message {
           margin-top: 1rem;
-          font-size: 0.9rem;
-          color: #a0a0a0;
-          text-align: center;
-          padding: 0.5rem;
-          background-color: #2a2a2a;
+          padding: 0.8rem;
+          background-color: rgba(220, 38, 38, 0.1);
+          border: 1px solid rgba(220, 38, 38, 0.3);
           border-radius: 5px;
+          color: #f87171;
+          font-size: 0.9rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.8rem;
+        }
+        
+        .retry-button {
+          padding: 0.5rem 1rem;
+          background-color: #2a2a2a;
+          color: #e0e0e0;
+          border: 1px solid #444;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 0.9rem;
+          transition: background-color 0.2s;
+          align-self: center;
+        }
+        
+        .retry-button:hover {
+          background-color: #383838;
         }
         
         .form {
@@ -485,6 +570,11 @@ export default function ChatPage() {
           outline: none;
         }
         
+        .input:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+        
         .button {
           padding: 0.8rem 1.5rem;
           background-color: #7288d9;
@@ -497,8 +587,14 @@ export default function ChatPage() {
           transition: background-color 0.2s;
         }
         
-        .button:hover {
+        .button:hover:not(:disabled) {
           background-color: #5a6fb3;
+        }
+        
+        .button:disabled {
+          background-color: #4a5275;
+          cursor: not-allowed;
+          opacity: 0.7;
         }
         
         .chat-container {
@@ -645,6 +741,12 @@ export default function ChatPage() {
           outline: none;
         }
         
+        .message-input:disabled {
+          background-color: #252525;
+          color: #777;
+          cursor: not-allowed;
+        }
+        
         .send-button {
           padding: 0.8rem 1.5rem;
           background-color: #7288d9;
@@ -655,8 +757,14 @@ export default function ChatPage() {
           font-weight: 600;
         }
         
-        .send-button:hover {
+        .send-button:hover:not(:disabled) {
           background-color: #5a6fb3;
+        }
+        
+        .send-button:disabled {
+          background-color: #4a5275;
+          cursor: not-allowed;
+          opacity: 0.7;
         }
         
         @media (max-width: 600px) {
