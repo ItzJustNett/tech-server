@@ -27,9 +27,37 @@ export default function Home() {
       });
     }
     
+    // Scroll indicators setup
+    const showScrollIndicator = () => {
+      // Show scroll indicator after 3 seconds
+      setTimeout(() => {
+        const scrollIndicator = document.getElementById('scroll-indicator');
+        if (scrollIndicator) {
+          scrollIndicator.style.opacity = '1';
+        }
+      }, 3000);
+    };
+    
+    // Handle scroll
+    const handleScroll = () => {
+      const scrollPos = window.scrollY || window.pageYOffset;
+      const winHeight = window.innerHeight;
+      
+      // Get elements
+      const scrollIndicator = document.getElementById('scroll-indicator');
+      
+      // Hide scroll indicator as user scrolls
+      if (scrollIndicator && scrollPos > 50) {
+        scrollIndicator.style.opacity = '0';
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    showScrollIndicator();
+    
     // Create shooting stars
     const shootingStars = [];
-    const trailTimeout = 3000; // 3 seconds before trails disappear
+    const trailTimeout = 1500; // 1.5 seconds before trails disappear
     
     const createShootingStar = () => {
       const x = Math.random() * canvas.width;
@@ -146,9 +174,13 @@ export default function Home() {
     };
     
     window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll);
+    
+    showScrollIndicator();
     
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -162,6 +194,13 @@ export default function Home() {
       <div id="content">
         <h1 id="title">Neon Mind</h1>
         <p id="quote">The future is now.</p>
+        <div id="scroll-indicator">
+          <p>Scroll Down</p>
+          <div id="scroll-arrow">↓</div>
+        </div>
+      </div>
+      
+      <div id="quote-section">
         <div id="einstein-container">
           <p id="einstein-quote">
             <span className="quote-marks">"</span>Once you stop learning, you start dying.<span className="quote-marks">"</span>
@@ -258,12 +297,9 @@ export default function Home() {
         }
         
         #einstein-container {
-          margin-top: 3rem;
           display: flex;
           flex-direction: column;
           align-items: center;
-          opacity: 0;
-          animation: fadeIn 2s forwards 2s;
         }
         
         #einstein-quote {
@@ -314,6 +350,54 @@ export default function Home() {
           to {
             box-shadow: 0 0 20px rgba(138, 43, 226, 0.9), 
                         0 0 40px rgba(51, 153, 255, 0.7);
+          }
+        }
+        
+        #nightSkyContainer {
+          position: relative;
+          width: 100vw;
+          min-height: 200vh; /* Double height to allow scrolling */
+          overflow-x: hidden;
+        }
+        
+        #quote-section {
+          height: 100vh;
+          width: 100%;
+          position: absolute;
+          top: 100vh; /* Position below the first viewport */
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          background: linear-gradient(to bottom, #1a1a4a, #000000);
+        }
+        
+        #scroll-indicator {
+          position: absolute;
+          bottom: 30px;
+          left: 50%;
+          transform: translateX(-50%);
+          color: white;
+          text-align: center;
+          opacity: 0;
+          transition: opacity 0.5s ease;
+        }
+        
+        #scroll-arrow {
+          font-size: 2rem;
+          animation: bounce 2s infinite;
+          color: #8a2be2;
+          text-shadow: 0 0 10px rgba(138, 43, 226, 0.7);
+        }
+        
+        @keyframes bounce {
+          0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+          }
+          40% {
+            transform: translateY(-15px);
+          }
+          60% {
+            transform: translateY(-7px);
           }
         }
       `}
